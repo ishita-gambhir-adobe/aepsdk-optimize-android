@@ -175,4 +175,13 @@ class OptimizeUtils {
         }
         return requestEventId;
     }
+
+    static boolean isEdgeErrorResponseEvent(final Event event) {
+        return OptimizeConstants.EventType.EDGE.equalsIgnoreCase(event.getType())
+                && OptimizeConstants.EventSource.ERROR_RESPONSE_CONTENT.equalsIgnoreCase(event.getSource());
+    }
+
+//    var isEdgeErrorResponseEvent: Bool {
+//        type == EventType.edge && source == OptimizeConstants.EventSource.EDGE_ERROR_RESPONSE
+//    }
 }

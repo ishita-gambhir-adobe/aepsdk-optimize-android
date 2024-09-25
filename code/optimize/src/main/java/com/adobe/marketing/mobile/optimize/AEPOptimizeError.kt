@@ -12,13 +12,25 @@
 package com.adobe.marketing.mobile.optimize
 import com.adobe.marketing.mobile.AdobeError
 public class AEPOptimizeError(val type: String? = "", val status: Int? = 0, val title: String? = "", val detail: String? = "", var report: Map<String, Any>?, var adobeError: AdobeError?) {
+
+    val serverErrors = listOf(
+        OptimizeConstants.HTTPResponseCodes.tooManyRequests,
+        OptimizeConstants.HTTPResponseCodes.internalServerError,
+        OptimizeConstants.HTTPResponseCodes.serviceUnavailable
+    )
+
+    val networkErrors = listOf(
+        OptimizeConstants.HTTPResponseCodes.badGateway,
+        OptimizeConstants.HTTPResponseCodes.gatewayTimeout
+    )
+
     init {
         if (adobeError == null) {
-            adobeError = when (status) {
-                408 -> AdobeError.CALLBACK_TIMEOUT
-                400, 403, 404 -> AdobeError.UNEXPECTED_ERROR
-                429, 500, 503 -> AdobeError.UNEXPECTED_ERROR
-                502, 504 -> AdobeError.UNEXPECTED_ERROR
+            adobeError = when {
+                status == OptimizeConstants.HTTPResponseCodes.clientTimeout -> AdobeError.CALLBACK_TIMEOUT
+                serverErrors.contains(status) -> AdobeError.SERVER_ERROR
+                networkErrors.contains(status) -> AdobeError.NETWORK_ERROR
+                status in 400..499 -> AdobeError.INVALID_REQUEST
                 else -> AdobeError.UNEXPECTED_ERROR
             }
         }

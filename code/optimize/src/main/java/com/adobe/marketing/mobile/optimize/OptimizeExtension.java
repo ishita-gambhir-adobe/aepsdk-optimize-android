@@ -93,6 +93,18 @@ class OptimizeExtension extends Extension {
                     OptimizeConstants.JsonValues.SCHEMA_OFFER_IMAGE,
                     OptimizeConstants.JsonValues.SCHEMA_OFFER_TEXT);
 
+    // List containing recoverable network error codes being retried by Edge Network Service
+    private static final List<Integer> recoverableNetworkErrorCodes = Arrays.asList(
+            OptimizeConstants.HTTPResponseCodes.clientTimeout,
+            OptimizeConstants.HTTPResponseCodes.tooManyRequests,
+            OptimizeConstants.HTTPResponseCodes.badGateway,
+            OptimizeConstants.HTTPResponseCodes.serviceUnavailable,
+            OptimizeConstants.HTTPResponseCodes.gatewayTimeout
+    );
+
+    //Map containing the update event IDs and corresponding errors as received from Edge SDK
+    private static final Map<String, AEPOptimizeError> updateRequestEventIdsErrors = new ConcurrentHashMap<>();
+
     /**
      * Constructor for {@code OptimizeExtension}.
      *
