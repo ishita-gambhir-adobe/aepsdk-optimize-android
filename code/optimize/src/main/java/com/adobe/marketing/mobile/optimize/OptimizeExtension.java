@@ -642,6 +642,7 @@ class OptimizeExtension extends Extension {
      */
     void handleEdgeErrorResponse(@NonNull final Event event) {
         if (OptimizeUtils.isNullOrEmpty(event.getEventData())) {
+            //todo
             Log.debug(
                     OptimizeConstants.LOG_TAG,
                     SELF_TAG,
