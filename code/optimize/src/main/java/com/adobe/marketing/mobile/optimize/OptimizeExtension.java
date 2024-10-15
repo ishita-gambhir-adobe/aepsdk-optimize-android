@@ -1024,4 +1024,14 @@ class OptimizeExtension extends Extension {
     void setEventsDispatcher(final SerialWorkDispatcher<Event> eventsDispatcher) {
         this.eventsDispatcher = eventsDispatcher;
     }
+
+    @VisibleForTesting
+    Map<String, AEPOptimizeError> getUpdateRequestEventIdsErrors() {
+        return updateRequestEventIdsErrors;
+    }
+
+    @VisibleForTesting
+    void clearUpdateRequestEventIdsErrors() {
+        updateRequestEventIdsErrors.clear();
+    }
 }
