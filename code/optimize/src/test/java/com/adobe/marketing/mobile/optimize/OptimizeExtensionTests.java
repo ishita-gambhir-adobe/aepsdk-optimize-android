@@ -20,7 +20,6 @@ import com.adobe.marketing.mobile.SharedStateResult;
 import com.adobe.marketing.mobile.SharedStateStatus;
 import com.adobe.marketing.mobile.services.Log;
 import com.adobe.marketing.mobile.util.SerialWorkDispatcher;
-import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -1307,7 +1306,6 @@ public class OptimizeExtensionTests {
         }
     }
 
-
     @Test
     public void testHandleEdgeErrorResponse_nonRecoverableError() throws Exception {
         try (MockedStatic<Log> logMockedStatic = Mockito.mockStatic(Log.class)) {
@@ -1333,9 +1331,9 @@ public class OptimizeExtensionTests {
 
             final Event testEvent =
                     new Event.Builder(
-                            "AEP Error Response",
-                            "com.adobe.eventType.edge",
-                            "com.adobe.eventSource.errorResponseContent")
+                                    "AEP Error Response",
+                                    "com.adobe.eventType.edge",
+                                    "com.adobe.eventSource.errorResponseContent")
                             .setEventData(edgeErrorResponseData)
                             .build();
 
@@ -1357,11 +1355,16 @@ public class OptimizeExtensionTests {
 
             // validate AEPOptimizeError is created correctly
 
-            Map.Entry<String, AEPOptimizeError> firstEntry = extension.getUpdateRequestEventIdsErrors().entrySet().iterator().next();
+            Map.Entry<String, AEPOptimizeError> firstEntry =
+                    extension.getUpdateRequestEventIdsErrors().entrySet().iterator().next();
             AEPOptimizeError aepOptimizeError = firstEntry.getValue();
 
-            Assert.assertEquals("https://ns.adobe.com/aep/errors/ODE-0001-404", aepOptimizeError.getType());
-            Assert.assertEquals("The following scope was not found: xcore:offer-activity:1111111111111111/xcore:offer-placement:1111111111111111", aepOptimizeError.getDetail());
+            Assert.assertEquals(
+                    "https://ns.adobe.com/aep/errors/ODE-0001-404", aepOptimizeError.getType());
+            Assert.assertEquals(
+                    "The following scope was not found:"
+                        + " xcore:offer-activity:1111111111111111/xcore:offer-placement:1111111111111111",
+                    aepOptimizeError.getDetail());
             Assert.assertEquals("Not Found", aepOptimizeError.getTitle());
             extension.clearUpdateRequestEventIdsErrors();
         }
@@ -1392,9 +1395,9 @@ public class OptimizeExtensionTests {
 
             final Event testEvent =
                     new Event.Builder(
-                            "AEP Error Response",
-                            "com.adobe.eventType.edge",
-                            "com.adobe.eventSource.errorResponseContent")
+                                    "AEP Error Response",
+                                    "com.adobe.eventType.edge",
+                                    "com.adobe.eventSource.errorResponseContent")
                             .setEventData(edgeErrorResponseData)
                             .build();
 
