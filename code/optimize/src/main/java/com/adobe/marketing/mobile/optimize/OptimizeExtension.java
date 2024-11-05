@@ -16,6 +16,7 @@ import androidx.annotation.VisibleForTesting;
 import com.adobe.marketing.mobile.AdobeCallbackWithError;
 import com.adobe.marketing.mobile.AdobeError;
 import com.adobe.marketing.mobile.Event;
+import com.adobe.marketing.mobile.EventType;
 import com.adobe.marketing.mobile.Extension;
 import com.adobe.marketing.mobile.ExtensionApi;
 import com.adobe.marketing.mobile.MobileCore;
@@ -167,6 +168,11 @@ class OptimizeExtension extends Extension {
                         OptimizeConstants.EventType.OPTIMIZE,
                         OptimizeConstants.EventSource.CONTENT_COMPLETE,
                         this::handleUpdatePropositionsCompleted);
+
+        getApi().registerEventListener(
+                        EventType.SYSTEM,
+                        OptimizeConstants.EventSource.DEBUG,
+                        this::handleDebugEvent);
 
         eventsDispatcher.start();
     }
@@ -963,6 +969,82 @@ class OptimizeExtension extends Extension {
      */
     void handleClearPropositions(@NonNull final Event event) {
         cachedPropositions.clear();
+    }
+
+    void handleDebugEvent(@NonNull final Event event) {
+        try {
+            if (OptimizeUtils.isNullOrEmpty(event.getEventData())) {
+                Log.debug(
+                        OptimizeConstants.LOG_TAG,
+                        SELF_TAG,
+                        "handleDebugEvent - Ignoring the Optimize Debug event, either event is null or event data is null/ empty.");
+                return;
+            }
+
+            if (!OptimizeUtils.isDebugEvent(event)) {
+                Log.debug(
+                        OptimizeConstants.LOG_TAG,
+                        SELF_TAG,
+                        "handleDebugEvent - Ignoring Optimize Debug event, either handle type is not com.adobe.eventType.system or source is not com.adobe.eventSource.debug");
+                return;
+            }
+
+            final Map<String, Object> eventData = event.getEventData();
+
+            final List<Map<String, Object>> payload =
+                    DataReader.getTypedListOfMap(
+                            Object.class, eventData, OptimizeConstants.Edge.PAYLOAD);
+            if (OptimizeUtils.isNullOrEmpty(payload)) {
+                Log.debug(
+                        OptimizeConstants.LOG_TAG,
+                        SELF_TAG,
+                        "handleDebugEvent - Cannot process the Edge event, propositions list is either null or empty in the Edge response.");
+                return;
+            }
+
+            final Map<DecisionScope, OptimizeProposition> propositionsMap = new HashMap<>();
+            for (final Map<String, Object> propositionData : payload) {
+                final OptimizeProposition optimizeProposition =
+                        OptimizeProposition.fromEventData(propositionData);
+                if (optimizeProposition != null
+                        && !OptimizeUtils.isNullOrEmpty(optimizeProposition.getOffers())) {
+                    final DecisionScope scope = new DecisionScope(optimizeProposition.getScope());
+                    propositionsMap.put(scope, optimizeProposition);
+                }
+            }
+
+            if (OptimizeUtils.isNullOrEmpty(propositionsMap)) {
+                Log.debug(
+                        OptimizeConstants.LOG_TAG,
+                        SELF_TAG,
+                        "handleDebugEvent - Cannot process the Edge event, no propositions with valid offers are present in the Edge response.");
+                return;
+            }
+
+            final List<Map<String, Object>> propositionsList = new ArrayList<>();
+            for (final OptimizeProposition optimizeProposition : propositionsMap.values()) {
+                propositionsList.add(optimizeProposition.toEventData());
+            }
+            final Map<String, Object> notificationData = new HashMap<>();
+            notificationData.put(OptimizeConstants.EventDataKeys.PROPOSITIONS, propositionsList);
+
+            final Event edgeEvent =
+                    new Event.Builder(
+                            OptimizeConstants.EventNames.OPTIMIZE_NOTIFICATION,
+                            OptimizeConstants.EventType.OPTIMIZE,
+                            OptimizeConstants.EventSource.NOTIFICATION)
+                            .setEventData(notificationData)
+                            .build();
+
+            // Dispatch notification event
+            getApi().dispatch(edgeEvent);
+        } catch (final Exception e) {
+            Log.warning(
+                    OptimizeConstants.LOG_TAG,
+                    SELF_TAG,
+                    "handleDebugEvent - Cannot process the Edge event due to an exception (%s)!",
+                    e.getLocalizedMessage());
+        }
     }
 
     /**
