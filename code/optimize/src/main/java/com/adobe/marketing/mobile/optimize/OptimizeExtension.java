@@ -977,7 +977,8 @@ class OptimizeExtension extends Extension {
                 Log.debug(
                         OptimizeConstants.LOG_TAG,
                         SELF_TAG,
-                        "handleDebugEvent - Ignoring the Optimize Debug event, either event is null or event data is null/ empty.");
+                        "handleDebugEvent - Ignoring the Optimize Debug event, either event is null"
+                                + " or event data is null/ empty.");
                 return;
             }
 
@@ -985,7 +986,9 @@ class OptimizeExtension extends Extension {
                 Log.debug(
                         OptimizeConstants.LOG_TAG,
                         SELF_TAG,
-                        "handleDebugEvent - Ignoring Optimize Debug event, either handle type is not com.adobe.eventType.system or source is not com.adobe.eventSource.debug");
+                        "handleDebugEvent - Ignoring Optimize Debug event, either handle type is"
+                                + " not com.adobe.eventType.system or source is not"
+                                + " com.adobe.eventSource.debug");
                 return;
             }
 
@@ -998,7 +1001,8 @@ class OptimizeExtension extends Extension {
                 Log.debug(
                         OptimizeConstants.LOG_TAG,
                         SELF_TAG,
-                        "handleDebugEvent - Cannot process the Edge event, propositions list is either null or empty in the Edge response.");
+                        "handleDebugEvent - Cannot process the Edge event, propositions list is"
+                                + " either null or empty in the Edge response.");
                 return;
             }
 
@@ -1017,7 +1021,8 @@ class OptimizeExtension extends Extension {
                 Log.debug(
                         OptimizeConstants.LOG_TAG,
                         SELF_TAG,
-                        "handleDebugEvent - Cannot process the Edge event, no propositions with valid offers are present in the Edge response.");
+                        "handleDebugEvent - Cannot process the Edge event, no propositions with"
+                                + " valid offers are present in the Edge response.");
                 return;
             }
 
@@ -1030,9 +1035,9 @@ class OptimizeExtension extends Extension {
 
             final Event edgeEvent =
                     new Event.Builder(
-                            OptimizeConstants.EventNames.OPTIMIZE_NOTIFICATION,
-                            OptimizeConstants.EventType.OPTIMIZE,
-                            OptimizeConstants.EventSource.NOTIFICATION)
+                                    OptimizeConstants.EventNames.OPTIMIZE_NOTIFICATION,
+                                    OptimizeConstants.EventType.OPTIMIZE,
+                                    OptimizeConstants.EventSource.NOTIFICATION)
                             .setEventData(notificationData)
                             .build();
 

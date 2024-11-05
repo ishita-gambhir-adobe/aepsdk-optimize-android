@@ -155,7 +155,8 @@ class OptimizeUtils {
     }
 
     static boolean isDebugEvent(final Event event) {
-        return EventType.SYSTEM.equalsIgnoreCase(event.getType()) && OptimizeConstants.EventSource.DEBUG.equalsIgnoreCase(event.getSource());
+        return EventType.SYSTEM.equalsIgnoreCase(event.getType())
+                && OptimizeConstants.EventSource.DEBUG.equalsIgnoreCase(event.getSource());
     }
 
     /**
