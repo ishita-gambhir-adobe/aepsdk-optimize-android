@@ -2651,6 +2651,35 @@ public class OptimizeExtensionTests {
     }
 
     @Test
+    public void testHandleDebugEvent_nullProposition() throws Exception {
+        try (MockedStatic<Log> logMockedStatic = Mockito.mockStatic(Log.class)) {
+            // setup
+            final Map<String, Object> edgeResponseData = new HashMap<>();
+            edgeResponseData.put("propositions", null);
+
+            final Event testEvent =
+                    new Event.Builder(
+                                    "Test Event",
+                                    "com.adobe.eventType.edge",
+                                    "com.adobe.eventSource.responseContent")
+                            .setEventData(edgeResponseData)
+                            .build();
+
+            // test
+            extension.handleDebugEvent(testEvent);
+
+            // verify
+            logMockedStatic.verify(
+                    () ->
+                            Log.debug(
+                                    ArgumentMatchers.anyString(),
+                                    ArgumentMatchers.anyString(),
+                                    ArgumentMatchers.anyString(),
+                                    ArgumentMatchers.any()));
+        }
+    }
+
+    @Test
     public void testDebugEvent_nullEventData() {
         try (MockedStatic<Log> logMockedStatic = Mockito.mockStatic(Log.class)) {
 
