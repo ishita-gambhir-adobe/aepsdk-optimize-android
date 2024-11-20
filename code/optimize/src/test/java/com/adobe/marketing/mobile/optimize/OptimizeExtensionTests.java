@@ -2617,7 +2617,7 @@ public class OptimizeExtensionTests {
     }
 
     @Test
-    public void testHandleDebugEvent_emptyProposition() throws Exception {
+    public void testHandleDebugEvent_emptyPayload() throws Exception {
         try (MockedStatic<Log> logMockedStatic = Mockito.mockStatic(Log.class)) {
             // setup
             final Map<String, Object> edgeResponseData =
@@ -2651,11 +2651,17 @@ public class OptimizeExtensionTests {
     }
 
     @Test
-    public void testHandleDebugEvent_nullProposition() throws Exception {
+    public void testHandleDebugEvent_emptyProposition() throws Exception {
         try (MockedStatic<Log> logMockedStatic = Mockito.mockStatic(Log.class)) {
-            // setup
-            final Map<String, Object> edgeResponseData = new HashMap<>();
-            edgeResponseData.put("propositions", null);
+
+            final Map<String, Object> edgeResponseData =
+                    new ObjectMapper()
+                            .readValue(
+                                    getClass()
+                                            .getClassLoader()
+                                            .getResource(
+                                                    "json/EVENT_DATA_EDGE_RESPONSE_PROPOSITION_WITH_EMPTY_OFFER.json"),
+                                    HashMap.class);
 
             final Event testEvent =
                     new Event.Builder(

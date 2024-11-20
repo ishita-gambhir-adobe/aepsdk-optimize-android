@@ -126,7 +126,8 @@ class OptimizeExtension extends Extension {
      *       OptimizeConstants.EventType#GENERIC_IDENTITY} and source {@value
      *       OptimizeConstants.EventSource#REQUEST_RESET} Listener for {@code Event} type {@value
      *       OptimizeConstants.EventType#OPTIMIZE} and source {@value
-     *       OptimizeConstants.EventSource#CONTENT_COMPLETE}
+     *       OptimizeConstants.EventSource#CONTENT_COMPLETE} Listener for {@code Event} type {@value
+     *       EventType#SYSTEM} and source {@value OptimizeConstants.EventSource#DEBUG}
      * </ul>
      *
      * @param extensionApi {@link ExtensionApi} instance.
@@ -971,6 +972,14 @@ class OptimizeExtension extends Extension {
         cachedPropositions.clear();
     }
 
+    /**
+     * Handles the event with type {@value EventType#SYSTEM} and source {@value
+     * OptimizeConstants.EventSource#DEBUG}.
+     *
+     * <p>A debug event allows the optimize extension to processes non-production workflows.
+     *
+     * @param event the debug {@link Event} to be handled.
+     */
     void handleDebugEvent(@NonNull final Event event) {
         try {
             if (OptimizeUtils.isNullOrEmpty(event.getEventData())) {
@@ -1025,6 +1034,8 @@ class OptimizeExtension extends Extension {
                                 + " valid offers are present in the Edge response.");
                 return;
             }
+
+            cachedPropositions.putAll(propositionsMap);
 
             final List<Map<String, Object>> propositionsList = new ArrayList<>();
             for (final OptimizeProposition optimizeProposition : propositionsMap.values()) {
