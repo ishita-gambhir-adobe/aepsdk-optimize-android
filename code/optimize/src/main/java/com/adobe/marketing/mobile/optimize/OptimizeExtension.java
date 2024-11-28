@@ -922,6 +922,7 @@ class OptimizeExtension extends Extension {
      */
     void handleClearPropositions(@NonNull final Event event) {
         cachedPropositions.clear();
+        previewCachedPropositions.clear();
     }
 
     /**
