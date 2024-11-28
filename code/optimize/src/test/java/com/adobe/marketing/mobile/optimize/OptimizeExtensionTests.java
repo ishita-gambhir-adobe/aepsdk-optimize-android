@@ -2221,9 +2221,9 @@ public class OptimizeExtensionTests {
                                 HashMap.class);
         final Event testEvent =
                 new Event.Builder(
-                        "AEP Response Event Handle (Spoof)",
-                        "com.adobe.eventType.system",
-                        "com.adobe.eventSource.debug")
+                                "AEP Response Event Handle (Spoof)",
+                                "com.adobe.eventType.system",
+                                "com.adobe.eventSource.debug")
                         .setEventData(edgeResponseData)
                         .build();
 
@@ -2285,9 +2285,9 @@ public class OptimizeExtensionTests {
                                     HashMap.class);
             final Event testEvent =
                     new Event.Builder(
-                            "AEP Response Event Handle (Spoof)",
-                            "com.adobe.eventType.edge",
-                            "com.adobe.eventSource.debug")
+                                    "AEP Response Event Handle (Spoof)",
+                                    "com.adobe.eventType.edge",
+                                    "com.adobe.eventSource.debug")
                             .setEventData(edgeResponseData)
                             .build();
 
@@ -2320,9 +2320,9 @@ public class OptimizeExtensionTests {
                                     HashMap.class);
             final Event testEvent =
                     new Event.Builder(
-                            "AEP Response Event Handle (Spoof)",
-                            "com.adobe.eventType.system",
-                            "com.adobe.eventSource.personalization:decisions")
+                                    "AEP Response Event Handle (Spoof)",
+                                    "com.adobe.eventType.system",
+                                    "com.adobe.eventSource.personalization:decisions")
                             .setEventData(edgeResponseData)
                             .build();
 
@@ -2355,9 +2355,9 @@ public class OptimizeExtensionTests {
 
             final Event testEvent =
                     new Event.Builder(
-                            "AEP Response Event Handle (Spoof)",
-                            "com.adobe.eventType.system",
-                            "com.adobe.eventSource.debug")
+                                    "AEP Response Event Handle (Spoof)",
+                                    "com.adobe.eventType.system",
+                                    "com.adobe.eventSource.debug")
                             .setEventData(edgeResponseData)
                             .build();
 
@@ -2389,9 +2389,9 @@ public class OptimizeExtensionTests {
 
             final Event testEvent =
                     new Event.Builder(
-                            "Test Event",
-                            "com.adobe.eventType.edge",
-                            "com.adobe.eventSource.responseContent")
+                                    "Test Event",
+                                    "com.adobe.eventType.edge",
+                                    "com.adobe.eventSource.responseContent")
                             .setEventData(edgeResponseData)
                             .build();
 
@@ -2416,9 +2416,9 @@ public class OptimizeExtensionTests {
             // setup
             final Event testEvent =
                     new Event.Builder(
-                            "AEP Response Event Handle (Spoof)",
-                            "com.adobe.eventType.system",
-                            "com.adobe.eventSource.debug")
+                                    "AEP Response Event Handle (Spoof)",
+                                    "com.adobe.eventType.system",
+                                    "com.adobe.eventSource.debug")
                             .setEventData(null)
                             .build();
 
@@ -2443,9 +2443,9 @@ public class OptimizeExtensionTests {
             // setup
             final Event testEvent =
                     new Event.Builder(
-                            "AEP Response Event Handle (Spoof)",
-                            "com.adobe.eventType.system",
-                            "com.adobe.eventSource.debug")
+                                    "AEP Response Event Handle (Spoof)",
+                                    "com.adobe.eventType.system",
+                                    "com.adobe.eventSource.debug")
                             .setEventData(new HashMap<>())
                             .build();
 
