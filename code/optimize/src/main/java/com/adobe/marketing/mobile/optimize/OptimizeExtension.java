@@ -963,8 +963,8 @@ class OptimizeExtension extends Extension {
                 Log.debug(
                         OptimizeConstants.LOG_TAG,
                         SELF_TAG,
-                        "handleDebugEvent - Cannot process the Edge event, propositions list is"
-                                + " either null or empty in the Edge response.");
+                        "handleDebugEvent - Cannot process the Debug event, propositions list is"
+                                + " either null or empty in the response.");
                 return;
             }
 
@@ -983,8 +983,8 @@ class OptimizeExtension extends Extension {
                 Log.debug(
                         OptimizeConstants.LOG_TAG,
                         SELF_TAG,
-                        "handleDebugEvent - Cannot process the Edge event, no propositions with"
-                                + " valid offers are present in the Edge response.");
+                        "handleDebugEvent - Cannot process the Debug event, no propositions with"
+                                + " valid offers are present in the response.");
                 return;
             }
 
@@ -997,7 +997,7 @@ class OptimizeExtension extends Extension {
             final Map<String, Object> notificationData = new HashMap<>();
             notificationData.put(OptimizeConstants.EventDataKeys.PROPOSITIONS, propositionsList);
 
-            final Event edgeEvent =
+            final Event notificationEvent =
                     new Event.Builder(
                                     OptimizeConstants.EventNames.OPTIMIZE_NOTIFICATION,
                                     OptimizeConstants.EventType.OPTIMIZE,
@@ -1006,12 +1006,12 @@ class OptimizeExtension extends Extension {
                             .build();
 
             // Dispatch notification event
-            getApi().dispatch(edgeEvent);
+            getApi().dispatch(notificationEvent);
         } catch (final Exception e) {
             Log.warning(
                     OptimizeConstants.LOG_TAG,
                     SELF_TAG,
-                    "handleDebugEvent - Cannot process the Edge event due to an exception (%s)!",
+                    "handleDebugEvent - Cannot process the Debug event due to an exception (%s)!",
                     e.getLocalizedMessage());
         }
     }
