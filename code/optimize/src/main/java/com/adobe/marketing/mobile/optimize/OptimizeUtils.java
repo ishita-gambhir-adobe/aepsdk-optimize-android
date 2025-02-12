@@ -14,6 +14,7 @@ package com.adobe.marketing.mobile.optimize;
 import android.util.Base64;
 import com.adobe.marketing.mobile.AdobeError;
 import com.adobe.marketing.mobile.Event;
+import com.adobe.marketing.mobile.EventType;
 import com.adobe.marketing.mobile.services.Log;
 import com.adobe.marketing.mobile.util.DataReader;
 import java.util.Collection;
@@ -151,6 +152,17 @@ class OptimizeUtils {
         return OptimizeConstants.EventType.EDGE.equalsIgnoreCase(event.getType())
                 && OptimizeConstants.EventSource.ERROR_RESPONSE_CONTENT.equalsIgnoreCase(
                         event.getSource());
+    }
+
+    /**
+     * Checks whether the given event is a Debug Event returned from the Edge network.
+     *
+     * @param event instance of {@link Event}
+     * @return {@code boolean} return true if event is a debug event, false otherwise.
+     */
+    static boolean isDebugEvent(final Event event) {
+        return EventType.SYSTEM.equalsIgnoreCase(event.getType())
+                && OptimizeConstants.EventSource.DEBUG.equalsIgnoreCase(event.getSource());
     }
 
     /**

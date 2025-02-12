@@ -16,6 +16,7 @@ import androidx.annotation.VisibleForTesting;
 import com.adobe.marketing.mobile.AdobeCallbackWithError;
 import com.adobe.marketing.mobile.AdobeError;
 import com.adobe.marketing.mobile.Event;
+import com.adobe.marketing.mobile.EventType;
 import com.adobe.marketing.mobile.Extension;
 import com.adobe.marketing.mobile.ExtensionApi;
 import com.adobe.marketing.mobile.MobileCore;
@@ -29,6 +30,7 @@ import com.adobe.marketing.mobile.util.SerialWorkDispatcher;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -42,6 +44,10 @@ class OptimizeExtension extends Extension {
     // for the same Edge personalization request.
     // This is accessed from multiple threads.
     private Map<DecisionScope, OptimizeProposition> cachedPropositions = new ConcurrentHashMap<>();
+
+    // Concurrent Map containing propositions simulated for preview and cached in-memory in the SDK
+    private Map<DecisionScope, OptimizeProposition> previewCachedPropositions =
+            new ConcurrentHashMap<>();
 
     // Events dispatcher used to maintain the processing order of update and get propositions
     // events.
@@ -124,7 +130,8 @@ class OptimizeExtension extends Extension {
      *       OptimizeConstants.EventType#GENERIC_IDENTITY} and source {@value
      *       OptimizeConstants.EventSource#REQUEST_RESET} Listener for {@code Event} type {@value
      *       OptimizeConstants.EventType#OPTIMIZE} and source {@value
-     *       OptimizeConstants.EventSource#CONTENT_COMPLETE}
+     *       OptimizeConstants.EventSource#CONTENT_COMPLETE} Listener for {@code Event} type {@value
+     *       EventType#SYSTEM} and source {@value OptimizeConstants.EventSource#DEBUG}
      * </ul>
      *
      * @param extensionApi {@link ExtensionApi} instance.
@@ -166,6 +173,11 @@ class OptimizeExtension extends Extension {
                         OptimizeConstants.EventType.OPTIMIZE,
                         OptimizeConstants.EventSource.CONTENT_COMPLETE,
                         this::handleUpdatePropositionsCompleted);
+
+        getApi().registerEventListener(
+                        EventType.SYSTEM,
+                        OptimizeConstants.EventSource.DEBUG,
+                        this::handleDebugEvent);
 
         eventsDispatcher.start();
     }
@@ -245,10 +257,78 @@ class OptimizeExtension extends Extension {
                 handleUpdatePropositions(event);
                 break;
             case OptimizeConstants.EventDataValues.REQUEST_TYPE_GET:
-                // Queue the get propositions event in the events dispatcher to ensure any prior
-                // update requests are completed
-                // before it is processed.
-                eventsDispatcher.offer(event);
+                try {
+                    // Fetch decision scopes from the event
+                    List<Map<String, Object>> decisionScopesData =
+                            DataReader.getTypedListOfMap(
+                                    Object.class,
+                                    eventData,
+                                    OptimizeConstants.EventDataKeys.DECISION_SCOPES);
+                    List<DecisionScope> eventDecisionScopes =
+                            retrieveValidDecisionScopes(decisionScopesData);
+
+                    if (OptimizeUtils.isNullOrEmpty(eventDecisionScopes)) {
+                        Log.debug(
+                                OptimizeConstants.LOG_TAG,
+                                SELF_TAG,
+                                "handleOptimizeRequestContent - Cannot process the get propositions"
+                                        + " request event, provided list of decision scopes has no"
+                                        + " valid scope.");
+                        getApi().dispatch(
+                                        createResponseEventWithError(
+                                                event, AdobeError.UNEXPECTED_ERROR));
+                        return;
+                    }
+
+                    // Fetch propositions for the decision scopes from the cache
+                    Map<DecisionScope, OptimizeProposition> fetchedPropositions = new HashMap<>();
+                    for (DecisionScope scope : eventDecisionScopes) {
+                        if (cachedPropositions.containsKey(scope)) {
+                            fetchedPropositions.put(scope, cachedPropositions.get(scope));
+                        }
+                    }
+
+                    // Check if all scopes are cached and none are in progress
+                    boolean anyScopeInProgress = false;
+                    HashSet<DecisionScope> scopesInProgress = new HashSet<>();
+                    for (List<DecisionScope> updatingScope :
+                            updateRequestEventIdsInProgress.values()) {
+                        scopesInProgress.addAll(updatingScope);
+                    }
+                    for (DecisionScope scope : eventDecisionScopes) {
+                        if (scopesInProgress.contains(scope)) {
+                            anyScopeInProgress = true;
+                            break;
+                        }
+                    }
+
+                    if ((fetchedPropositions.size() == eventDecisionScopes.size())
+                            && !anyScopeInProgress) {
+                        Log.trace(
+                                OptimizeConstants.LOG_TAG,
+                                SELF_TAG,
+                                "handleOptimizeRequestContent - All scopes are cached and none are"
+                                        + " in progress, dispatching event directly.");
+
+                        // Dispatch the event directly
+                        handleGetPropositions(event);
+                    } else {
+                        Log.trace(
+                                OptimizeConstants.LOG_TAG,
+                                SELF_TAG,
+                                "handleOptimizeRequestContent - Scopes are not fully cached or are"
+                                        + " in progress, adding event to dispatcher.");
+                        eventsDispatcher.offer(event);
+                    }
+                    break;
+                } catch (final Exception e) {
+                    Log.warning(
+                            OptimizeConstants.LOG_TAG,
+                            SELF_TAG,
+                            "handleOptimizeRequestContent - Failed to process get propositions"
+                                    + " request event due to an exception (%s)!",
+                            e.getLocalizedMessage());
+                }
                 break;
             case OptimizeConstants.EventDataValues.REQUEST_TYPE_TRACK:
                 handleTrackPropositions(event);
@@ -380,10 +460,11 @@ class OptimizeExtension extends Extension {
 
             // add the Edge event to update propositions in the events queue.
             eventsDispatcher.offer(edgeEvent);
-
+            long timeoutMillis =
+                    DataReader.getLong(eventData, OptimizeConstants.EventDataKeys.TIMEOUT);
             MobileCore.dispatchEventWithResponseCallback(
                     edgeEvent,
-                    OptimizeConstants.EDGE_CONTENT_COMPLETE_RESPONSE_TIMEOUT,
+                    timeoutMillis,
                     new AdobeCallbackWithError<Event>() {
                         @Override
                         public void fail(final AdobeError error) {
@@ -784,8 +865,25 @@ class OptimizeExtension extends Extension {
                 }
             }
 
+            final List<Map<String, Object>> previewPropositionsList = new ArrayList<>();
+            for (final DecisionScope scope : validScopes) {
+                if (previewCachedPropositions.containsKey(scope)) {
+                    final OptimizeProposition optimizeProposition =
+                            previewCachedPropositions.get(scope);
+                    previewPropositionsList.add(optimizeProposition.toEventData());
+                }
+            }
+
             final Map<String, Object> responseEventData = new HashMap<>();
-            responseEventData.put(OptimizeConstants.EventDataKeys.PROPOSITIONS, propositionsList);
+
+            if (!previewPropositionsList.isEmpty()) {
+                Log.debug(OptimizeConstants.LOG_TAG, SELF_TAG, "Preview Mode is enabled.");
+                responseEventData.put(
+                        OptimizeConstants.EventDataKeys.PROPOSITIONS, previewPropositionsList);
+            } else {
+                responseEventData.put(
+                        OptimizeConstants.EventDataKeys.PROPOSITIONS, propositionsList);
+            }
 
             final Event responseEvent =
                     new Event.Builder(
@@ -894,6 +992,98 @@ class OptimizeExtension extends Extension {
      */
     void handleClearPropositions(@NonNull final Event event) {
         cachedPropositions.clear();
+        previewCachedPropositions.clear();
+    }
+
+    /**
+     * Handles the event with type {@value EventType#SYSTEM} and source {@value
+     * OptimizeConstants.EventSource#DEBUG}.
+     *
+     * <p>A debug event allows the optimize extension to processes non-production workflows.
+     *
+     * @param event the debug {@link Event} to be handled.
+     */
+    void handleDebugEvent(@NonNull final Event event) {
+        try {
+            if (OptimizeUtils.isNullOrEmpty(event.getEventData())) {
+                Log.debug(
+                        OptimizeConstants.LOG_TAG,
+                        SELF_TAG,
+                        "handleDebugEvent - Ignoring the Optimize Debug event, either event is null"
+                                + " or event data is null/ empty.");
+                return;
+            }
+
+            if (!OptimizeUtils.isDebugEvent(event)) {
+                Log.debug(
+                        OptimizeConstants.LOG_TAG,
+                        SELF_TAG,
+                        "handleDebugEvent - Ignoring Optimize Debug event, either handle type is"
+                                + " not com.adobe.eventType.system or source is not"
+                                + " com.adobe.eventSource.debug");
+                return;
+            }
+
+            final Map<String, Object> eventData = event.getEventData();
+
+            final List<Map<String, Object>> payload =
+                    DataReader.getTypedListOfMap(
+                            Object.class, eventData, OptimizeConstants.Edge.PAYLOAD);
+            if (OptimizeUtils.isNullOrEmpty(payload)) {
+                Log.debug(
+                        OptimizeConstants.LOG_TAG,
+                        SELF_TAG,
+                        "handleDebugEvent - Cannot process the Debug event, propositions list is"
+                                + " either null or empty in the response.");
+                return;
+            }
+
+            final Map<DecisionScope, OptimizeProposition> propositionsMap = new HashMap<>();
+            for (final Map<String, Object> propositionData : payload) {
+                final OptimizeProposition optimizeProposition =
+                        OptimizeProposition.fromEventData(propositionData);
+                if (optimizeProposition != null
+                        && !OptimizeUtils.isNullOrEmpty(optimizeProposition.getOffers())) {
+                    final DecisionScope scope = new DecisionScope(optimizeProposition.getScope());
+                    propositionsMap.put(scope, optimizeProposition);
+                }
+            }
+
+            if (OptimizeUtils.isNullOrEmpty(propositionsMap)) {
+                Log.debug(
+                        OptimizeConstants.LOG_TAG,
+                        SELF_TAG,
+                        "handleDebugEvent - Cannot process the Debug event, no propositions with"
+                                + " valid offers are present in the response.");
+                return;
+            }
+
+            previewCachedPropositions.putAll(propositionsMap);
+
+            final List<Map<String, Object>> propositionsList = new ArrayList<>();
+            for (final OptimizeProposition optimizeProposition : propositionsMap.values()) {
+                propositionsList.add(optimizeProposition.toEventData());
+            }
+            final Map<String, Object> notificationData = new HashMap<>();
+            notificationData.put(OptimizeConstants.EventDataKeys.PROPOSITIONS, propositionsList);
+
+            final Event notificationEvent =
+                    new Event.Builder(
+                                    OptimizeConstants.EventNames.OPTIMIZE_NOTIFICATION,
+                                    OptimizeConstants.EventType.OPTIMIZE,
+                                    OptimizeConstants.EventSource.NOTIFICATION)
+                            .setEventData(notificationData)
+                            .build();
+
+            // Dispatch notification event
+            getApi().dispatch(notificationEvent);
+        } catch (final Exception e) {
+            Log.warning(
+                    OptimizeConstants.LOG_TAG,
+                    SELF_TAG,
+                    "handleDebugEvent - Cannot process the Debug event due to an exception (%s)!",
+                    e.getLocalizedMessage());
+        }
     }
 
     /**
@@ -995,6 +1185,17 @@ class OptimizeExtension extends Extension {
     @VisibleForTesting
     void setCachedPropositions(final Map<DecisionScope, OptimizeProposition> cachedPropositions) {
         this.cachedPropositions = cachedPropositions;
+    }
+
+    @VisibleForTesting
+    Map<DecisionScope, OptimizeProposition> getPreviewCachedPropositions() {
+        return previewCachedPropositions;
+    }
+
+    @VisibleForTesting
+    void setPreviewCachedPropositions(
+            final Map<DecisionScope, OptimizeProposition> previewCachedPropositions) {
+        this.previewCachedPropositions = previewCachedPropositions;
     }
 
     @VisibleForTesting

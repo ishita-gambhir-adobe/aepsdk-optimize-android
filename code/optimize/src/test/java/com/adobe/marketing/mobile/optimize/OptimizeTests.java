@@ -11,6 +11,9 @@
 
 package com.adobe.marketing.mobile.optimize;
 
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+
 import android.util.Base64;
 import com.adobe.marketing.mobile.AdobeCallbackWithError;
 import com.adobe.marketing.mobile.AdobeError;
@@ -894,6 +897,122 @@ public class OptimizeTests {
             Assert.assertEquals("com.adobe.eventType.optimize", event.getType());
             Assert.assertEquals("com.adobe.eventSource.requestReset", event.getSource());
             Assert.assertNull(event.getEventData());
+        }
+    }
+
+    @Test
+    public void testUpdatePropositions_timeoutError() {
+
+        double timeoutSeconds = 0.1;
+        Map<String, Object> xdm = new HashMap<>();
+        Map<String, Object> data = new HashMap<>();
+        final List<DecisionScope> scopes = new ArrayList<>();
+        scopes.add(
+                new DecisionScope(
+                        "eyJhY3Rpdml0eUlkIjoieGNvcmU6b2ZmZXItYWN0aXZpdHk6MTExMTExMTExMTExMTExMSIsInBsYWNlbWVudElkIjoieGNvcmU6b2ZmZXItcGxhY2VtZW50OjExMTExMTExMTExMTExMTEifQ=="));
+
+        // Mock the callback
+        AdobeCallbackWithError<Map<DecisionScope, OptimizeProposition>> callbackMock =
+                Mockito.mock(AdobeCallbackWithError.class);
+
+        AdobeCallbackWithOptimizeError<Event> callbackMockEvent =
+                Mockito.mock(AdobeCallbackWithOptimizeError.class);
+
+        try (MockedStatic<MobileCore> mobileCoreMockedStatic =
+                        Mockito.mockStatic(MobileCore.class);
+                MockedStatic<Base64> base64MockedStatic = Mockito.mockStatic(Base64.class)) {
+
+            base64MockedStatic
+                    .when(
+                            () ->
+                                    Base64.decode(
+                                            ArgumentMatchers.anyString(),
+                                            ArgumentMatchers.anyInt()))
+                    .thenAnswer(
+                            (Answer<byte[]>)
+                                    invocation ->
+                                            java.util.Base64.getDecoder()
+                                                    .decode((String) invocation.getArguments()[0]));
+
+            mobileCoreMockedStatic
+                    .when(
+                            () ->
+                                    MobileCore.dispatchEventWithResponseCallback(
+                                            ArgumentMatchers.any(Event.class),
+                                            ArgumentMatchers.anyLong(),
+                                            ArgumentMatchers.any(AdobeCallbackWithError.class)))
+                    .thenAnswer(
+                            (Answer<Void>)
+                                    invocation -> {
+                                        Optimize.failWithOptimizeError(
+                                                callbackMockEvent,
+                                                AEPOptimizeError.Companion.getTimeoutError());
+                                        return null;
+                                    });
+
+            Optimize.updatePropositions(scopes, xdm, data, timeoutSeconds, callbackMock);
+            ArgumentCaptor<AEPOptimizeError> errorCaptor =
+                    ArgumentCaptor.forClass(AEPOptimizeError.class);
+            verify(callbackMockEvent, times(1)).fail(errorCaptor.capture());
+            Assert.assertEquals(
+                    AEPOptimizeError.Companion.getTimeoutError(), errorCaptor.getValue());
+        }
+    }
+
+    @Test
+    public void testGetPropositions_timeoutError() {
+
+        double timeoutSeconds = 0.1;
+        final List<DecisionScope> scopes = new ArrayList<>();
+        scopes.add(
+                new DecisionScope(
+                        "eyJhY3Rpdml0eUlkIjoieGNvcmU6b2ZmZXItYWN0aXZpdHk6MTExMTExMTExMTExMTExMSIsInBsYWNlbWVudElkIjoieGNvcmU6b2ZmZXItcGxhY2VtZW50OjExMTExMTExMTExMTExMTEifQ=="));
+
+        // Mock the callback
+        AdobeCallbackWithError<Map<DecisionScope, OptimizeProposition>> callbackMock =
+                Mockito.mock(AdobeCallbackWithError.class);
+
+        AdobeCallbackWithOptimizeError<Event> callbackMockEvent =
+                Mockito.mock(AdobeCallbackWithOptimizeError.class);
+
+        try (MockedStatic<MobileCore> mobileCoreMockedStatic =
+                        Mockito.mockStatic(MobileCore.class);
+                MockedStatic<Base64> base64MockedStatic = Mockito.mockStatic(Base64.class)) {
+
+            base64MockedStatic
+                    .when(
+                            () ->
+                                    Base64.decode(
+                                            ArgumentMatchers.anyString(),
+                                            ArgumentMatchers.anyInt()))
+                    .thenAnswer(
+                            (Answer<byte[]>)
+                                    invocation ->
+                                            java.util.Base64.getDecoder()
+                                                    .decode((String) invocation.getArguments()[0]));
+
+            mobileCoreMockedStatic
+                    .when(
+                            () ->
+                                    MobileCore.dispatchEventWithResponseCallback(
+                                            ArgumentMatchers.any(Event.class),
+                                            ArgumentMatchers.anyLong(),
+                                            ArgumentMatchers.any(AdobeCallbackWithError.class)))
+                    .thenAnswer(
+                            (Answer<Void>)
+                                    invocation -> {
+                                        Optimize.failWithOptimizeError(
+                                                callbackMockEvent,
+                                                AEPOptimizeError.Companion.getTimeoutError());
+                                        return null;
+                                    });
+
+            Optimize.getPropositions(scopes, timeoutSeconds, callbackMock);
+            ArgumentCaptor<AEPOptimizeError> errorCaptor =
+                    ArgumentCaptor.forClass(AEPOptimizeError.class);
+            verify(callbackMockEvent, times(1)).fail(errorCaptor.capture());
+            Assert.assertEquals(
+                    AEPOptimizeError.Companion.getTimeoutError(), errorCaptor.getValue());
         }
     }
 }

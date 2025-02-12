@@ -13,12 +13,12 @@ package com.adobe.marketing.mobile.optimize;
 
 class OptimizeConstants {
     static final String LOG_TAG = "Optimize";
-    static final String EXTENSION_VERSION = "3.1.0";
+    static final String EXTENSION_VERSION = "3.2.4";
     static final String EXTENSION_NAME = "com.adobe.optimize";
     static final String FRIENDLY_NAME = "Optimize";
-    static final long DEFAULT_RESPONSE_CALLBACK_TIMEOUT = 500L;
-    static final long GET_RESPONSE_CALLBACK_TIMEOUT = 10000L;
-    static final long EDGE_CONTENT_COMPLETE_RESPONSE_TIMEOUT = 10000L;
+    static final double GET_RESPONSE_CALLBACK_TIMEOUT = 10;
+    static final double EDGE_CONTENT_COMPLETE_RESPONSE_TIMEOUT = 10;
+    static final long TIMEOUT_CONVERSION_FACTOR = 1000;
 
     static final String ACTIVITY_ID = "activityId";
     static final String XDM_ACTIVITY_ID = "xdm:activityId";
@@ -64,6 +64,7 @@ class OptimizeConstants {
         static final String NOTIFICATION = "com.adobe.eventSource.notification";
         static final String EDGE_PERSONALIZATION_DECISIONS = "personalization:decisions";
         static final String CONTENT_COMPLETE = "com.adobe.eventSource.contentComplete";
+        static final String DEBUG = "com.adobe.eventSource.debug";
 
         private EventSource() {}
     }
@@ -74,6 +75,7 @@ class OptimizeConstants {
         static final String DECISION_SCOPE_NAME = "name";
         static final String XDM = "xdm";
         static final String DATA = "data";
+        static final String TIMEOUT = "timeout";
         static final String PROPOSITIONS = "propositions";
         static final String RESPONSE_ERROR = "responseerror";
         static final String PROPOSITION_INTERACTIONS = "propositioninteractions";

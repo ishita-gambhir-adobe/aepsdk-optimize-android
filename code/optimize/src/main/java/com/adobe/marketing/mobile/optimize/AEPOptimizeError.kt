@@ -84,6 +84,7 @@ data class AEPOptimizeError(
             return getAdobeErrorFromStatus(data[STATUS] as Int?)
         }
 
+        @JvmStatic
         fun getTimeoutError(): AEPOptimizeError {
             return AEPOptimizeError(
                 null,
